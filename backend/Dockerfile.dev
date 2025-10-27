@@ -1,0 +1,39 @@
+# Dockerfile for development
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Enable Yarn Berry and set version
+RUN corepack enable && corepack prepare yarn@4.9.2 --activate
+
+# Copy Yarn configuration files
+COPY .yarnrc.docker.yml .yarnrc.yml
+COPY package.json yarn.lock ./
+COPY .yarn .yarn
+
+# Install dependencies (including devDependencies for development)
+RUN yarn install --immutable
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+
+# Change ownership of the app directory
+RUN chown -R nestjs:nodejs /app
+USER nestjs
+
+# Expose port
+EXPOSE 3000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application in development mode using ts-node directly
+CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/main.ts"]
