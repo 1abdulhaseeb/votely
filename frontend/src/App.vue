@@ -1,21 +1,6 @@
 <template>
   <div id="app">
-    <nav class="navbar">
-      <div class="nav-container">
-        <router-link to="/" class="nav-brand">Votely</router-link>
-        <div class="nav-links">
-          <router-link to="/" class="nav-link">Polls</router-link>
-          <template v-if="auth.user">
-            <span class="nav-user">Welcome, {{ auth.user.firstName || auth.user.username || auth.user.email }}!</span>
-            <button @click="handleLogout" class="nav-link logout-btn">Logout</button>
-          </template>
-          <template v-else>
-            <router-link to="/login" class="nav-link">Login</router-link>
-            <router-link to="/register" class="nav-link">Register</router-link>
-          </template>
-        </div>
-      </div>
-    </nav>
+    <Navbar />
     <main class="main-content">
       <router-view />
     </main>
@@ -23,29 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from './stores/auth';
-
-const auth = useAuthStore();
-const router = useRouter();
-
-onMounted(async () => {
-  // Try to load user profile if token exists
-  if (auth.token) {
-    try {
-      await auth.loadProfile();
-    } catch (e) {
-      // Token might be expired, clear it
-      auth.logout();
-    }
-  }
-});
-
-function handleLogout() {
-  auth.logout();
-  router.push('/login');
-}
+import Navbar from './components/Navbar.vue';
 </script>
 
 <style>
@@ -57,12 +20,13 @@ function handleLogout() {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: #f8f9fa;
-  color: #333;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FFFFFF;
+  color: #1E3185;
   margin: 0;
   display: block;
   min-height: 100vh;
+  line-height: 1.6;
 }
 
 #app {
@@ -72,158 +36,138 @@ body {
   text-align: left;
 }
 
-.navbar {
-  background: #fff;
-  border-bottom: 1px solid #e9ecef;
-  padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-brand {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #007bff;
-  text-decoration: none;
-}
-
-.nav-brand:hover {
-  text-decoration: none;
-  color: #0056b3;
-}
-
-.nav-links {
-  display: flex;
-  gap: 2rem;
-}
-
-.nav-link {
-  color: #333;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.nav-link:hover {
-  background-color: #f8f9fa;
-  color: #007bff;
-}
-
-.nav-link.router-link-active {
-  color: #007bff;
-  background-color: #e7f3ff;
-}
-
-.nav-user {
-  color: #666;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
-}
-
-.logout-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 500;
-}
-
-.logout-btn:hover {
-  background-color: #fee;
-  color: #dc3545;
-}
-
 .main-content {
   min-height: calc(100vh - 80px);
   padding: 2rem 0;
+  background: linear-gradient(135deg, #FFFFFF 0%, #f8f9ff 100%);
 }
 
 /* Page styles */
 .page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
 }
 
 /* Form styles */
 form {
   max-width: 400px;
   margin: 2rem auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 2.5rem;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(30, 49, 133, 0.12);
+  border: 1px solid rgba(30, 49, 133, 0.1);
 }
 
 form input {
   width: 100%;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border: 2px solid rgba(30, 49, 133, 0.15);
+  border-radius: 8px;
   font-size: 1rem;
+  color: #1E3185;
+  background-color: #FFFFFF;
+  transition: all 0.3s ease;
+}
+
+form input::placeholder {
+  color: rgba(30, 49, 133, 0.5);
 }
 
 form input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+  border-color: #1E3185;
+  box-shadow: 0 0 0 3px rgba(30, 49, 133, 0.15);
+  transform: translateY(-1px);
 }
 
 form button {
   width: 100%;
-  padding: 0.75rem;
-  background-color: #007bff;
-  color: white;
+  padding: 1rem;
+  background: linear-gradient(135deg, #1E3185 0%, #2940a0 100%);
+  color: #FFFFFF;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 form button:hover {
-  background-color: #0056b3;
+  background: linear-gradient(135deg, #162661 0%, #1E3185 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(30, 49, 133, 0.3);
+}
+
+form button:active {
+  transform: translateY(0);
+}
+
+form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Override dark theme */
 :root {
   color-scheme: light;
-  color: #333;
-  background-color: #ffffff;
+  color: #1E3185;
+  background-color: #FFFFFF;
 }
 
 a {
-  color: #007bff;
+  color: #1E3185;
   text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 a:hover {
-  color: #0056b3;
+  color: #162661;
   text-decoration: underline;
 }
 
 button {
-  background-color: #007bff;
-  color: white;
-  border: 1px solid #007bff;
+  background: linear-gradient(135deg, #1E3185 0%, #2940a0 100%);
+  color: #FFFFFF;
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background: linear-gradient(135deg, #162661 0%, #1E3185 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(30, 49, 133, 0.3);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: #1E3185;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 3.5rem;
+  background: linear-gradient(135deg, #1E3185 0%, #2940a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-size: 2.5rem;
+}
+
+p {
+  color: rgba(30, 49, 133, 0.8);
+  line-height: 1.7;
 }
 </style>
