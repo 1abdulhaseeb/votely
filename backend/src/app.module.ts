@@ -6,13 +6,16 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
+import { DatabaseModule } from './database/database.module';
 import { User } from './users/user.entity';
 import { Role } from './roles/role.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Only connect to database if credentials are provided
+    // Always include DatabaseModule for Neon connection
+    DatabaseModule,
+    // Only connect to TypeORM if DATABASE_HOST is provided (for local dev)
     ...(process.env.DATABASE_HOST ? [
       TypeOrmModule.forRoot({
         type: 'postgres',
@@ -26,7 +29,7 @@ import { Role } from './roles/role.entity';
         logging: false,
       })
     ] : []),
-    // Only include database-dependent modules if database is available
+    // Only include TypeORM-dependent modules if DATABASE_HOST is available
     ...(process.env.DATABASE_HOST ? [
       UsersModule,
       RolesModule,
