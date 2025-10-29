@@ -5,10 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { SimpleAuthModule } from './auth/simple-auth.module';
-import { RolesModule } from './roles/roles.module';
 import { User } from './users/user.entity';
-import { Role } from './roles/role.entity';
 import { Poll } from './polls/poll.entity';
 import { PollOption } from './polls/poll-option.entity';
 import { Vote } from './polls/vote.entity';
@@ -25,14 +22,12 @@ import { CandidatesModule } from './candidates/candidates.module';
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [User, Role, Poll, PollOption, Vote],
+      entities: [User, Poll, PollOption, Vote],
       synchronize: true, // dev only
       logging: false,
     }),
     UsersModule,
-    RolesModule,
     AuthModule,
-    SimpleAuthModule,
     PollsModule,
     CandidatesModule,
   ],

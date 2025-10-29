@@ -19,6 +19,17 @@
               required 
             />
           </div>
+
+          <div class="input-group">
+            <label for="username">Username</label>
+            <input 
+              id="username"
+              v-model="formData.username" 
+              placeholder="Choose a unique username" 
+              type="text" 
+              required 
+            />
+          </div>
           
           <div class="input-group">
             <label for="password">Password</label>
@@ -28,9 +39,9 @@
               placeholder="Create a strong password" 
               type="password" 
               required 
-              minlength="6"
+              minlength="8"
             />
-            <small class="input-hint">Minimum 6 characters</small>
+            <small class="input-hint">Minimum 8 characters</small>
           </div>
           
           <div class="name-row">
@@ -77,9 +88,11 @@ import { useAuthStore } from '../stores/auth';
 
 const formData = reactive({
   email: '',
+  username: '',
   password: '',
   firstName: '',
-  lastName: ''
+  lastName: '',
+  role: 'voter' as 'voter' | 'candidate' | 'admin'
 });
 
 const loading = ref(false);
@@ -91,12 +104,14 @@ async function handleRegister() {
   
   loading.value = true;
   try {
-    await auth.register(
-      formData.email, 
-      formData.password, 
-      formData.firstName || undefined, 
-      formData.lastName || undefined
-    );
+    await auth.register({
+      email: formData.email,
+      username: formData.username,
+      password: formData.password,
+      firstName: formData.firstName || undefined,
+      lastName: formData.lastName || undefined,
+      role: formData.role
+    });
     // Redirect to home page after successful registration
     router.push('/');
   } catch (e: any) {

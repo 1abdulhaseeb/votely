@@ -10,19 +10,24 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UserRole } from '../users/user.entity';
 
 @Controller('candidates')
 export class CandidatesController {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly databaseService: DatabaseService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('stats')
   async getCandidateStats(@Request() req) {
     try {
-      const user = await this.databaseService.findUserById(req.user.sub);
-      if (!user || user.role !== 'candidate') {
+      const user = await this.usersService.findById(req.user.sub);
+      if (!user || user.role !== UserRole.CANDIDATE) {
         throw new ForbiddenException('Only candidates can view their stats');
       }
 
@@ -49,8 +54,8 @@ export class CandidatesController {
   @Get('polls')
   async getCandidatePolls(@Request() req) {
     try {
-      const user = await this.databaseService.findUserById(req.user.sub);
-      if (!user || user.role !== 'candidate') {
+      const user = await this.usersService.findById(req.user.sub);
+      if (!user || user.role !== UserRole.CANDIDATE) {
         throw new ForbiddenException('Only candidates can view their polls');
       }
 
@@ -70,8 +75,8 @@ export class CandidatesController {
   @Get('polls/:id/results')
   async getCandidatePollResults(@Param('id') pollId: string, @Request() req) {
     try {
-      const user = await this.databaseService.findUserById(req.user.sub);
-      if (!user || user.role !== 'candidate') {
+      const user = await this.usersService.findById(req.user.sub);
+      if (!user || user.role !== UserRole.CANDIDATE) {
         throw new ForbiddenException('Only candidates can view poll results');
       }
 
@@ -100,56 +105,5 @@ export class CandidatesController {
     }
   }
 
-  // Admin endpoint to promote user to candidate
-  @UseGuards(JwtAuthGuard)
-  @Put(':id/promote')
-  async promoteToCandidate(@Param('id') userId: string, @Request() req) {
-    try {
-      const admin = await this.databaseService.findUserById(req.user.sub);
-      if (!admin || admin.role !== 'admin') {
-        throw new ForbiddenException('Only admins can promote users to candidates');
-      }
 
-      const user = await this.databaseService.updateUserRole(parseInt(userId), 'candidate');
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      return {
-        message: 'User promoted to candidate successfully',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role
-        }
-      };
-    } catch (error) {
-      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to promote user');
-    }
-  }
-
-  // Admin endpoint to get all candidates
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  async getAllCandidates(@Request() req) {
-    try {
-      const admin = await this.databaseService.findUserById(req.user.sub);
-      if (!admin || admin.role !== 'admin') {
-        throw new ForbiddenException('Only admins can view all candidates');
-      }
-
-      const candidates = await this.databaseService.getUsersByRole('candidate');
-      
-      return candidates;
-    } catch (error) {
-      if (error instanceof ForbiddenException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to fetch candidates');
-    }
-  }
 }

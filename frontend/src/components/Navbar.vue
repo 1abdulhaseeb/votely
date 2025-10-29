@@ -4,9 +4,26 @@
       <router-link to="/" class="nav-brand">Votely</router-link>
       <div class="nav-links">
         <router-link to="/polls" class="nav-link">Polls</router-link>
+        
+        <!-- Admin Navigation -->
+        <template v-if="auth.user?.role === 'admin'">
+          <router-link to="/admin" class="nav-link admin-link">Admin</router-link>
+          <router-link to="/create-poll" class="nav-link create-link">Create Poll</router-link>
+        </template>
+        
+        <!-- Candidate Navigation -->
+        <template v-if="auth.user?.role === 'candidate'">
+          <router-link to="/candidate" class="nav-link candidate-link">My Dashboard</router-link>
+        </template>
+        
         <template v-if="auth.user">
-          <span class="nav-user">Welcome, {{ auth.user.firstName || auth.user.username || auth.user.email }}!</span>
-          <button @click="handleLogout" class="nav-link logout-btn">Logout</button>
+          <div class="user-menu">
+            <div class="user-info">
+              <span class="user-name">{{ displayName }}</span>
+              <span class="user-role" :class="auth.user.role">{{ roleDisplay }}</span>
+            </div>
+            <button @click="handleLogout" class="logout-btn">Logout</button>
+          </div>
         </template>
         <template v-else>
           <router-link to="/login" class="nav-link">Login</router-link>
@@ -18,12 +35,24 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
+
+// Computed properties
+const displayName = computed(() => {
+  if (!auth.user) return '';
+  return auth.user.firstName || auth.user.username || auth.user.email;
+});
+
+const roleDisplay = computed(() => {
+  if (!auth.user || !auth.user.role) return '';
+  const role = auth.user.role;
+  return role.charAt(0).toUpperCase() + role.slice(1);
+});
 
 onMounted(async () => {
   // Try to load user profile if token exists
@@ -126,14 +155,78 @@ function handleLogout() {
   box-shadow: 0 4px 15px rgba(30, 49, 133, 0.3);
 }
 
-.nav-user {
-  color: rgba(30, 49, 133, 0.8);
-  font-size: 0.95rem;
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
+.admin-link {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+}
+
+.admin-link:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+}
+
+.create-link {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+}
+
+.create-link:hover {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
+
+.candidate-link {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: white;
+}
+
+.candidate-link:hover {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0.5rem 1rem;
   background: rgba(30, 49, 133, 0.05);
-  border-radius: 25px;
+  border-radius: 12px;
   border: 1px solid rgba(30, 49, 133, 0.1);
+}
+
+.user-name {
+  color: #1E3185;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  margin-top: 0.2rem;
+}
+
+.user-role.admin {
+  background: #7c3aed;
+  color: white;
+}
+
+.user-role.candidate {
+  background: #d97706;
+  color: white;
+}
+
+.user-role.voter {
+  background: #059669;
+  color: white;
 }
 
 .logout-btn {
@@ -142,7 +235,7 @@ function handleLogout() {
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
   padding: 0.75rem 1.5rem;
   border-radius: 25px;
@@ -157,9 +250,35 @@ function handleLogout() {
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 968px) {
   .nav-container {
     padding: 0 1rem;
+  }
+  
+  .nav-links {
+    gap: 0.75rem;
+  }
+  
+  .nav-link {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .user-info {
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .user-name {
+    font-size: 0.8rem;
+  }
+  
+  .user-role {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-container {
     flex-direction: column;
     gap: 1rem;
   }
@@ -169,14 +288,24 @@ function handleLogout() {
   }
   
   .nav-links {
-    gap: 1rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
   }
   
   .nav-link {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .user-menu {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .user-info {
+    text-align: center;
+    align-items: center;
   }
 }
 </style>

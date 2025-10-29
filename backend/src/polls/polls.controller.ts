@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UserRole } from '../users/user.entity';
 
 interface CreatePollDto {
   title: string;
@@ -38,7 +39,7 @@ export class PollsController {
   async createPoll(@Body() createPollDto: CreatePollDto, @Request() req) {
     // Only admins can create polls
     const user = await this.databaseService.findUserById(req.user.sub);
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admins can create polls');
     }
 
@@ -146,7 +147,7 @@ export class PollsController {
       }
 
       // Only voters can vote
-      if (user.role !== 'voter') {
+      if (user.role !== UserRole.VOTER) {
         throw new ForbiddenException('Only voters can vote');
       }
 
