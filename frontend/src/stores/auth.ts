@@ -13,11 +13,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email: string, password: string) {
-    const res = await api.post('/auth/login', { email, password });
-    setToken(res.data.access_token);
+    const response = await api.post('/auth/login', { email, password });
+    setToken(response.data.access_token);
+
     // fetch profile
-    const p = await api.get('/auth/profile');
-    user.value = p.data;
+    return setUser();
+  }
+
+  async function setUser() {
+    const response = await api.get('/auth/profile');
+    user.value = response.data;
     return user.value;
   }
 
@@ -26,7 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (firstName) payload.firstName = firstName;
     if (lastName) payload.lastName = lastName;
     
-    const res = await api.post('/auth/register', payload);
+    await api.post('/auth/register', payload);
+
     // After successful registration, automatically log in
     return login(email, password);
   }

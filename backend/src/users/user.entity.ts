@@ -23,8 +23,21 @@ export class User {
   @Column({ nullable: true })
   firstName?: string;
 
+  @Column({ nullable: true, name: 'first_name' })
+  first_name?: string;
+
   @Column({ nullable: true })
   lastName?: string;
+
+  @Column({ nullable: true, name: 'last_name' })
+  last_name?: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['voter', 'candidate', 'admin'],
+    default: 'voter'
+  })
+  role: 'voter' | 'candidate' | 'admin';
 
   @Column({ default: true })
   isActive: boolean;
