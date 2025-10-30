@@ -38,7 +38,7 @@ body {
 
 .main-content {
   min-height: calc(100vh - 80px);
-  padding: 2rem 0;
+  padding: 0;
   background: linear-gradient(135deg, #FFFFFF 0%, #f8f9ff 100%);
 }
 

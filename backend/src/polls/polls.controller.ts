@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UserRole } from '../users/user.entity';
 
 interface CreatePollDto {
   title: string;
@@ -38,7 +39,7 @@ export class PollsController {
   async createPoll(@Body() createPollDto: CreatePollDto, @Request() req) {
     // Only admins can create polls
     const user = await this.databaseService.findUserById(req.user.sub);
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admins can create polls');
     }
 
@@ -81,8 +82,27 @@ export class PollsController {
   @Get()
   async getAllPolls() {
     try {
-      const polls = await this.databaseService.getAllPolls('active');
-      return polls;
+      const polls = await this.databaseService.getAllPolls();
+      
+      // Fetch options and vote counts for each poll
+      const pollsWithStats = await Promise.all(
+        polls.map(async (poll) => {
+          const options = await this.databaseService.getPollOptions(poll.id);
+          const results = await this.databaseService.getPollResults(poll.id);
+          
+          // Calculate total votes
+          const totalVotes = results.reduce((sum, result) => sum + result.voteCount, 0);
+          
+          return {
+            ...poll,
+            options,
+            totalVotes,
+            results
+          };
+        })
+      );
+      
+      return pollsWithStats;
     } catch (error) {
       throw new BadRequestException('Failed to fetch polls');
     }
@@ -133,6 +153,31 @@ export class PollsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get(':id/my-vote')
+  async getMyVote(@Param('id') id: string, @Request() req) {
+    try {
+      const pollId = parseInt(id);
+      const user = await this.databaseService.findUserById(req.user.sub);
+      
+      if (!user) {
+        throw new ForbiddenException('User not found');
+      }
+
+      const vote = await this.databaseService.getUserVote(pollId, user.id);
+      
+      return {
+        hasVoted: !!vote,
+        vote: vote
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to fetch user vote');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/vote')
   async vote(@Param('id') id: string, @Body() voteDto: VoteDto, @Request() req) {
     try {
@@ -146,7 +191,7 @@ export class PollsController {
       }
 
       // Only voters can vote
-      if (user.role !== 'voter') {
+      if (user.role !== UserRole.VOTER) {
         throw new ForbiddenException('Only voters can vote');
       }
 

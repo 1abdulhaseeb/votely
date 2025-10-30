@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import api from '../api';
 import { ref } from 'vue';
+import type { User } from '../api/services';
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null as null | { id: number; email: string; username: string; firstName?: string; lastName?: string });
+  const user = ref<User | null>(null);
   const token = ref<string | null>(localStorage.getItem('token'));
+  const initialized = ref<boolean>(false);
 
   function setToken(t: string | null) {
     token.value = t;
@@ -26,15 +28,18 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value;
   }
 
-  async function register(email: string, password: string, firstName?: string, lastName?: string) {
-    const payload: any = { email, password };
-    if (firstName) payload.firstName = firstName;
-    if (lastName) payload.lastName = lastName;
-    
-    await api.post('/auth/register', payload);
+  async function register(data: {
+    email: string;
+    username: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    role?: 'voter' | 'candidate' | 'admin';
+  }) {
+    await api.post('/auth/register', data);
 
     // After successful registration, automatically log in
-    return login(email, password);
+    return login(data.email, data.password);
   }
 
   async function loadProfile() {
@@ -44,10 +49,24 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value;
   }
 
+  async function initializeAuth() {
+    if (initialized.value) return;
+    
+    if (token.value) {
+      try {
+        await loadProfile();
+      } catch (error) {
+        // Token might be invalid, clear it
+        logout();
+      }
+    }
+    initialized.value = true;
+  }
+
   function logout() {
     setToken(null);
     user.value = null;
   }
 
-  return { user, token, login, register, loadProfile, logout };
+  return { user, token, initialized, login, register, loadProfile, initializeAuth, logout };
 });

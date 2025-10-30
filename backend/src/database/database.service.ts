@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/user.entity';
+import { User, UserRole } from '../users/user.entity';
 import { Poll } from '../polls/poll.entity';
 import { PollOption } from '../polls/poll-option.entity';
 import { Vote } from '../polls/vote.entity';
@@ -38,7 +38,7 @@ export class DatabaseService {
     username: string,
     firstName?: string,
     lastName?: string,
-    role: 'voter' | 'candidate' | 'admin' = 'voter'
+    role: UserRole = UserRole.VOTER
   ): Promise<User> {
     const user = this.userRepository.create({
       email,
@@ -53,12 +53,12 @@ export class DatabaseService {
     return this.userRepository.save(user);
   }
 
-  async updateUserRole(userId: number, role: 'voter' | 'candidate' | 'admin'): Promise<User | null> {
+  async updateUserRole(userId: number, role: UserRole): Promise<User | null> {
     await this.userRepository.update(userId, { role });
     return this.findUserById(userId);
   }
 
-  async getUsersByRole(role: 'voter' | 'candidate' | 'admin'): Promise<User[]> {
+  async getUsersByRole(role: UserRole): Promise<User[]> {
     return this.userRepository.find({ where: { role } });
   }
 
@@ -141,6 +141,12 @@ export class DatabaseService {
       where: { pollId, userId }
     });
     return !!vote;
+  }
+
+  async getUserVote(pollId: number, userId: number): Promise<Vote | null> {
+    return this.voteRepository.findOne({
+      where: { pollId, userId }
+    });
   }
 
   async getPollResults(pollId: number): Promise<any[]> {
