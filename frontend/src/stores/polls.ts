@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { pollAPI, candidatesAPI, type Poll, type PollResult, type User } from '../api/services';
+import { pollAPI, usersAPI, type Poll, type PollResult, type User } from '../api/services';
 
 export const usePollsStore = defineStore('polls', () => {
   const polls = ref<Poll[]>([]);
@@ -121,7 +121,7 @@ export const usePollsStore = defineStore('polls', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await candidatesAPI.getAllCandidates();
+      const response = await usersAPI.getAllCandidates();
       candidates.value = response.data;
       return response.data;
     } catch (err: any) {
@@ -136,7 +136,7 @@ export const usePollsStore = defineStore('polls', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await candidatesAPI.promoteToCandidate(userId);
+      const response = await usersAPI.promoteToCandidate(userId);
       await fetchCandidates(); // Refresh candidates list
       return response.data;
     } catch (err: any) {

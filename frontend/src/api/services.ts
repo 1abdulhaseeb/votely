@@ -39,6 +39,9 @@ export const pollAPI = {
   vote: (pollId: number, optionId: number) =>
     api.post(`/polls/${pollId}/vote`, { optionId }),
   
+  getMyVote: (pollId: number) =>
+    api.get(`/polls/${pollId}/my-vote`),
+  
   updatePollStatus: (pollId: number, status: 'draft' | 'active' | 'closed') =>
     api.put(`/polls/${pollId}/status`, { status }),
 };
@@ -110,6 +113,8 @@ export interface Poll {
   createdBy?: User;
   options?: PollOption[];
   votes?: Vote[];
+  totalVotes?: number;
+  results?: PollResult[];
   createdAt: string;
   updatedAt: string;
 }

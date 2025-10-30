@@ -94,8 +94,12 @@
           
           <div class="poll-meta">
             <div class="meta-item">
-              <span class="meta-icon">👥</span>
-              <span>{{ poll.options?.length || 0 }} options</span>
+              <span class="meta-icon">�️</span>
+              <span>{{ poll.totalVotes || 0 }} {{ (poll.totalVotes || 0) === 1 ? 'vote' : 'votes' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">📋</span>
+              <span>{{ poll.options?.length || 0 }} {{ (poll.options?.length || 0) === 1 ? 'option' : 'options' }}</span>
             </div>
             <div class="meta-item" v-if="poll.allowMultipleVotes">
               <span class="meta-icon">✅</span>

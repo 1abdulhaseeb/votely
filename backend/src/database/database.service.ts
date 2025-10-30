@@ -143,6 +143,12 @@ export class DatabaseService {
     return !!vote;
   }
 
+  async getUserVote(pollId: number, userId: number): Promise<Vote | null> {
+    return this.voteRepository.findOne({
+      where: { pollId, userId }
+    });
+  }
+
   async getPollResults(pollId: number): Promise<any[]> {
     const results = await this.voteRepository
       .createQueryBuilder('vote')

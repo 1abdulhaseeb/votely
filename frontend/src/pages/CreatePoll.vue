@@ -120,12 +120,20 @@
 
         <!-- Candidate-Based Poll Options -->
         <div v-else class="candidates-container">
-          <div v-if="candidatesStore.loading" class="loading-state">
+          <div v-if="candidatesLoading" class="loading-state">
             <div class="loading-spinner small"></div>
             <p>Loading candidates...</p>
           </div>
           
           <div v-else-if="availableCandidates.length === 0" class="no-candidates">
+            <!-- Debug info when no candidates -->
+            <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
+              <small>Debug: Available candidates count: {{ availableCandidates.length }}</small>
+              <br>
+              <small>Candidates loading: {{ candidatesLoading }}</small>
+              <br>
+              <small>Candidates error: {{ candidatesError }}</small>
+            </div>
             <div class="no-candidates-icon">👥</div>
             <h3>No Candidates Available</h3>
             <p>You need to promote some users to candidates first.</p>
@@ -217,10 +225,8 @@ const formData = reactive({
 
 const selectedCandidates = ref<number[]>([]);
 const availableCandidates = ref<User[]>([]);
-const candidatesStore = reactive({
-  loading: false,
-  error: null as string | null
-});
+const candidatesLoading = ref(false);
+const candidatesError = ref<string | null>(null);
 
 const saving = ref(false);
 const isDraft = ref(false);
@@ -251,16 +257,24 @@ function removeOption(index: number) {
 }
 
 async function loadCandidates() {
-  candidatesStore.loading = true;
-  candidatesStore.error = null;
+  candidatesLoading.value = true;
+  candidatesError.value = null;
+  
+  console.log('Token in localStorage:', localStorage.getItem('token'));
+  console.log('Making API call to fetch candidates...');
   
   try {
     const candidates = await pollsStore.fetchCandidates();
+    console.log('Loaded candidates:', candidates);
     availableCandidates.value = candidates;
   } catch (error: any) {
-    candidatesStore.error = error.response?.data?.message || 'Failed to load candidates';
+    console.error('Error loading candidates:', error);
+    console.error('Error response:', error.response);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    candidatesError.value = error.response?.data?.message || 'Failed to load candidates';
   } finally {
-    candidatesStore.loading = false;
+    candidatesLoading.value = false;
   }
 }
 
@@ -323,16 +337,14 @@ async function submitPoll(draft: boolean) {
 
 // Lifecycle
 onMounted(() => {
-  // Load candidates if poll type is candidate_based
-  if (formData.pollType === 'candidate_based') {
-    loadCandidates();
-  }
+  // Always load candidates on mount so they're available when needed
+  loadCandidates();
 });
 
 // Watch poll type changes
 import { watch } from 'vue';
 watch(() => formData.pollType, (newType) => {
-  if (newType === 'candidate_based' && availableCandidates.value.length === 0) {
+  if (newType === 'candidate_based') {
     loadCandidates();
   }
 });
@@ -340,66 +352,129 @@ watch(() => formData.pollType, (newType) => {
 
 <style scoped>
 .create-poll-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0.25rem;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  min-height: 100vh;
 }
 
 .page-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  position: relative;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 100%);
+  border-radius: 2px;
 }
 
 .breadcrumb {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  text-align: left;
 }
 
 .breadcrumb-link {
   color: #1E3185;
   text-decoration: none;
   font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(30, 49, 133, 0.05);
+  border: 1px solid rgba(30, 49, 133, 0.1);
 }
 
 .breadcrumb-link:hover {
   background: rgba(30, 49, 133, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 49, 133, 0.15);
 }
 
 .page-header h1 {
   color: #1E3185;
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-header p {
   color: rgba(30, 49, 133, 0.7);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
 .poll-form {
   background: white;
-  border-radius: 16px;
-  border: 2px solid rgba(30, 49, 133, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(30, 49, 133, 0.1);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(30, 49, 133, 0.08);
+  box-shadow: 0 8px 40px rgba(30, 49, 133, 0.12);
+  position: relative;
+  width: 50%;
+  max-width: none;
+}
+
+.poll-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 50%, #3B5FD9 100%);
 }
 
 .form-section {
-  padding: 2rem;
-  border-bottom: 1px solid rgba(30, 49, 133, 0.1);
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(30, 49, 133, 0.08);
+  position: relative;
 }
 
 .form-section:last-child {
   border-bottom: none;
 }
 
+.form-section:nth-child(even) {
+  background: rgba(30, 49, 133, 0.02);
+}
+
 .form-section h2 {
   color: #1E3185;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 1.25rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.form-section h2::before {
+  content: '';
+  width: 40px;
+  height: 4px;
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 100%);
+  border-radius: 2px;
 }
 
 .section-description {
@@ -408,14 +483,16 @@ watch(() => formData.pollType, (newType) => {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-group label {
   display: block;
   color: #1E3185;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  position: relative;
 }
 
 .form-group input,
@@ -423,13 +500,22 @@ watch(() => formData.pollType, (newType) => {
 .form-group select {
   width: 100%;
   padding: 1rem;
-  border: 2px solid rgba(30, 49, 133, 0.15);
-  border-radius: 8px;
+  border: 2px solid rgba(30, 49, 133, 0.12);
+  border-radius: 10px;
   font-size: 1rem;
   color: #1E3185;
-  background: white;
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+  border-color: rgba(30, 49, 133, 0.25);
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
 }
 
 .form-group input:focus,
@@ -437,7 +523,9 @@ watch(() => formData.pollType, (newType) => {
 .form-group select:focus {
   outline: none;
   border-color: #1E3185;
-  box-shadow: 0 0 0 3px rgba(30, 49, 133, 0.15);
+  box-shadow: 0 0 0 4px rgba(30, 49, 133, 0.15), 0 8px 25px rgba(30, 49, 133, 0.1);
+  background: white;
+  transform: translateY(-2px);
 }
 
 .form-group textarea {
@@ -452,12 +540,15 @@ watch(() => formData.pollType, (newType) => {
   margin-top: 0.5rem;
 }
 
-.checkbox-label {
-  display: flex;
+.form-group .checkbox-label {
+  display: flex !important;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.25rem;
   cursor: pointer;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  font-size: 1.1rem;
+  padding: 0.5rem 0;
 }
 
 .checkbox-input {
@@ -468,12 +559,14 @@ watch(() => formData.pollType, (newType) => {
 }
 
 .checkbox-custom {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border: 2px solid rgba(30, 49, 133, 0.3);
-  border-radius: 4px;
+  border-radius: 8px;
   position: relative;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  background: white;
 }
 
 .checkbox-input:checked + .checkbox-custom {
@@ -488,8 +581,9 @@ watch(() => formData.pollType, (newType) => {
   left: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: bold;
+  line-height: 1;
 }
 
 .options-container {
@@ -529,20 +623,29 @@ watch(() => formData.pollType, (newType) => {
 }
 
 .add-option-btn {
-  padding: 0.75rem 1.5rem;
-  background: rgba(30, 49, 133, 0.1);
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, rgba(30, 49, 133, 0.05) 0%, rgba(30, 49, 133, 0.1) 100%);
   color: #1E3185;
-  border: 2px dashed rgba(30, 49, 133, 0.3);
-  border-radius: 8px;
+  border: 2px dashed rgba(30, 49, 133, 0.25);
+  border-radius: 12px;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 1rem;
+  width: 100%;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .add-option-btn:hover:not(:disabled) {
-  background: rgba(30, 49, 133, 0.15);
+  background: linear-gradient(135deg, rgba(30, 49, 133, 0.1) 0%, rgba(30, 49, 133, 0.15) 100%);
   border-color: #1E3185;
+  border-style: solid;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(30, 49, 133, 0.2);
 }
 
 .add-option-btn:disabled {
@@ -640,21 +743,42 @@ watch(() => formData.pollType, (newType) => {
 }
 
 .candidate-card {
-  padding: 1rem;
-  border: 2px solid rgba(30, 49, 133, 0.15);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  background: white;
+  padding: 1.5rem;
+  border: 2px solid rgba(30, 49, 133, 0.12);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.candidate-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
 }
 
 .candidate-checkbox:checked + .candidate-card {
   border-color: #1E3185;
-  background: rgba(30, 49, 133, 0.05);
+  background: linear-gradient(135deg, rgba(30, 49, 133, 0.05) 0%, rgba(30, 49, 133, 0.08) 100%);
+  box-shadow: 0 4px 15px rgba(30, 49, 133, 0.15);
+}
+
+.candidate-checkbox:checked + .candidate-card::before {
+  transform: scaleX(1);
 }
 
 .candidate-card:hover {
   border-color: #1E3185;
-  transform: translateY(-1px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(30, 49, 133, 0.2);
 }
 
 .candidate-info h4 {
@@ -674,12 +798,12 @@ watch(() => formData.pollType, (newType) => {
 }
 
 .form-actions {
-  padding: 2rem;
-  background: rgba(30, 49, 133, 0.03);
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(30, 49, 133, 0.02) 0%, rgba(30, 49, 133, 0.05) 100%);
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  border-top: 1px solid rgba(30, 49, 133, 0.1);
+  gap: 1.5rem;
+  border-top: 1px solid rgba(30, 49, 133, 0.08);
 }
 
 .cancel-btn,
@@ -687,42 +811,74 @@ watch(() => formData.pollType, (newType) => {
 .create-btn {
   padding: 1rem 2rem;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
 }
 
 .cancel-btn {
-  background: rgba(30, 49, 133, 0.1);
+  background: rgba(30, 49, 133, 0.08);
   color: #1E3185;
-  border: 2px solid rgba(30, 49, 133, 0.2);
+  border: 2px solid rgba(30, 49, 133, 0.15);
 }
 
 .cancel-btn:hover {
-  background: rgba(30, 49, 133, 0.15);
+  background: rgba(30, 49, 133, 0.12);
+  border-color: rgba(30, 49, 133, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(30, 49, 133, 0.15);
 }
 
 .draft-btn {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b 0%, #e0a800 100%);
   color: white;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
 }
 
 .draft-btn:hover:not(:disabled) {
-  background: #d97706;
+  background: linear-gradient(135deg, #e0a800 0%, #d97706 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
 .create-btn {
-  background: linear-gradient(135deg, #1E3185 0%, #2940a0 100%);
+  background: linear-gradient(135deg, #1E3185 0%, #2C4AAF 100%);
   color: white;
+  box-shadow: 0 4px 15px rgba(30, 49, 133, 0.3);
 }
 
 .create-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #162661 0%, #1E3185 100%);
+  background: linear-gradient(135deg, #2C4AAF 0%, #3B5FD9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 49, 133, 0.4);
+}
+
+.draft-btn::before,
+.create-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.draft-btn:hover::before,
+.create-btn:hover::before {
+  left: 100%;
 }
 
 .draft-btn:disabled,
@@ -732,30 +888,75 @@ watch(() => formData.pollType, (newType) => {
 }
 
 /* Responsive Design */
+@media (max-width: 1600px) {
+  .create-poll-page {
+    max-width: 96%;
+    width: 96%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .create-poll-page {
+    max-width: 97%;
+    width: 97%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .create-poll-page {
+    padding: 0.5rem;
+    max-width: 98%;
+    width: 98%;
+  }
+  
+  .candidates-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .create-poll-page {
-    padding: 1rem;
-  }
-  
-  .page-header h1 {
-    font-size: 2rem;
-  }
-  
-  .form-section {
-    padding: 1.5rem;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-    padding: 1.5rem;
+    padding: 0.3rem;
+    max-width: 99%;
+    width: 99%;
   }
   
   .candidates-grid {
     grid-template-columns: 1fr;
   }
   
-  .candidate-card {
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+    margin: 0.25rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-poll-page {
+    padding: 0.2rem;
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .page-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .form-section {
     padding: 0.75rem;
+  }
+  
+  .form-actions {
+    padding: 0.75rem;
+  }
+  
+  .breadcrumb {
+    margin-bottom: 0.5rem;
   }
 }
 </style>

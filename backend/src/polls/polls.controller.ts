@@ -82,8 +82,27 @@ export class PollsController {
   @Get()
   async getAllPolls() {
     try {
-      const polls = await this.databaseService.getAllPolls('active');
-      return polls;
+      const polls = await this.databaseService.getAllPolls();
+      
+      // Fetch options and vote counts for each poll
+      const pollsWithStats = await Promise.all(
+        polls.map(async (poll) => {
+          const options = await this.databaseService.getPollOptions(poll.id);
+          const results = await this.databaseService.getPollResults(poll.id);
+          
+          // Calculate total votes
+          const totalVotes = results.reduce((sum, result) => sum + result.voteCount, 0);
+          
+          return {
+            ...poll,
+            options,
+            totalVotes,
+            results
+          };
+        })
+      );
+      
+      return pollsWithStats;
     } catch (error) {
       throw new BadRequestException('Failed to fetch polls');
     }
@@ -130,6 +149,31 @@ export class PollsController {
         throw error;
       }
       throw new BadRequestException('Failed to fetch poll results');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/my-vote')
+  async getMyVote(@Param('id') id: string, @Request() req) {
+    try {
+      const pollId = parseInt(id);
+      const user = await this.databaseService.findUserById(req.user.sub);
+      
+      if (!user) {
+        throw new ForbiddenException('User not found');
+      }
+
+      const vote = await this.databaseService.getUserVote(pollId, user.id);
+      
+      return {
+        hasVoted: !!vote,
+        vote: vote
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to fetch user vote');
     }
   }
 
